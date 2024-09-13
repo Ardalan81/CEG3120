@@ -6,7 +6,7 @@
 
 Command definition & example use for each:
 
-- status
+**- status**
 - log
 - clone
 - add
