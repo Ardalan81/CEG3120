@@ -6,20 +6,30 @@
 
 1. VPC
    - description + prompt responses
-   - screenshot w/ proof of configuration per project requirements
+  <img width="1502" alt="Screenshot 2024-09-27 at 8 19 58 PM" src="https://github.com/user-attachments/assets/62b6d0b4-86c8-4b73-9a77-890783fec96f">
+
 2. Subnet 
    - description + prompt responses
-   - screenshot w/ proof of configuration per project requirements
+  ![image](https://github.com/user-attachments/assets/a2ead836-60f6-4221-948d-9476a63e109d)
+
 3. Internet Gateway 
    - description + prompt responses
-   - screenshot w/ proof of configuration per project requirements
+   ![image](https://github.com/user-attachments/assets/79e236af-9bc6-4d45-956a-b3f0884fd28b)
+
 4. Route Table 
    - description + prompt responses
-   - screenshot w/ proof of configuration per project requirements
+  ![image](https://github.com/user-attachments/assets/590d06ff-2cfe-4acb-a325-6323d326c07c)
+
+
 5. Security Group 
    - description + prompt responses
    - screenshot w/ proof of configuration per project requirements
       - image should capture capture details for all 3 rules - (-1) point per rule not included
+      - 
+![image](https://github.com/user-attachments/assets/bda75ed3-4fca-4502-a119-f5dfae32f03f)
+
+![image](https://github.com/user-attachments/assets/9e398f77-3710-4f42-9fd4-3b26c04d0255)
+
 6. Network ACL 
    - description + prompt responses
    - screenshot w/ proof of configuration per project requirements
