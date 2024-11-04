@@ -11,12 +11,12 @@ Mappings:
   AWSRegionAMI: # AMI for Ubuntu server in each supported region 
     us-east-1:   # N. Virginia
     # AMI ID for Ubuntu 20 (ubuntu + apt) - Amazon Linux 2 AMI ami-02e136e904f3da870 (ec2-user + yum)
-      HVM64: ami-09e67e426f25ce0d7 # TODO use AMI ID of choice
+      HVM64: ami-0866a3c8686eaeeba # TODO use AMI ID of choice
 Resources:
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-      CidrBlock: 10.0.0.0/16 # TODO: check CIDR block
+      CidrBlock: 172.18.0.0/23 # TODO: check CIDR block
       Tags:
         - Key: Application
           Value: !Ref 'AWS::StackId'
@@ -26,7 +26,7 @@ Resources:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.0.0.0/24 # TODO: take note of the subnet range
+      CidrBlock: 172.18.0.0/24 # TODO: take note of the subnet range
       Tags:
         - Key: Application
           Value: !Ref 'AWS::StackId'
@@ -36,7 +36,7 @@ Resources:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.0.1.0/24 # TODO: take note of the subnet range
+      CidrBlock: 172.18.1.0/24 # TODO: take note of the subnet range
       Tags:
         - Key: Application
           Value: !Ref 'AWS::StackId'
@@ -128,7 +128,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
-          CidrIp: 10.0.0.0/16 # VPC as a whole. #TODO: update to refer to correct VPC block
+          CidrIp: 172.18.0.0/23 # VPC as a whole. #TODO: update to refer to correct VPC block
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
@@ -136,8 +136,20 @@ Resources:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
-          CidrIp: 0.0.0.0/32  # TODO Replace with home / trusted public IP
+          CidrIp: 130.108.104.17/32  # TODO Replace with home / trusted public IP
           # TODO Need more rules for port 80 access
+          # HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0  # Allow public HTTP access
+          # HTTP from within the VPC
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 172.18.0.0/23  # VPC CIDR block
+
+
       Tags: 
         - Key: Name
           Value: LB-sg
@@ -159,15 +171,16 @@ Resources:
           DeviceIndex: '0'
           DeleteOnTermination: 'true'
           SubnetId: !Ref PublicSubnet
-          PrivateIpAddress: 10.0.0.10 # TODO
+          PrivateIpAddress: 172.18.0.10 # TODO
       UserData:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
             apt-get update && \
-            # TODO need to install haproxy
-            apt-get install -y git && \
+            apt-get install -y haproxy git && \
             hostnamectl set-hostname proxy && \
+            systemctl enable haproxy && \
+            systemctl start haproxy && \
             reboot
   WebServ1Instance:
     Type: 'AWS::EC2::Instance'
@@ -188,7 +201,7 @@ Resources:
           DeviceIndex: '0'
           DeleteOnTermination: 'true'
           SubnetId: !Ref PrivateSubnet
-          PrivateIpAddress: 10.0.1.10 # TODO make sure unique to the instance
+          PrivateIpAddress: 172.18.1.10 # TODO make sure unique to the instance
       UserData:
         Fn::Base64:
           !Sub |
@@ -199,4 +212,70 @@ Resources:
             # TODO give it a hostname - hostnamectl  && \
             # TODO download & extract (likely two commands) simle-site.tar.gz
             reboot
+ WebServ2Instance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: NATGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: webserv2
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: 'false'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 172.18.1.11
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            apt-get update && \
+            apt-get install -y apache2 && \
+            hostnamectl set-hostname webserv2 && \
+            wget -O /tmp/simple-site.tar.gz https://github.com/pattonsgirl/CEG3120/raw/refs/heads/main/Projects/Project3/simple-site.tar.gz && \
+            tar -xzvf /tmp/simple-site.tar.gz -C /var/www/html && \
+            systemctl enable apache2 && \
+            systemctl start apache2 && \
+            reboot
+ WebServ3Instance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: NATGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: webserv3
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: 'false'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 172.18.1.12
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            apt-get update && \
+            apt-get install -y apache2 && \
+            hostnamectl set-hostname webserv3 && \
+            wget -O /tmp/simple-site.tar.gz https://github.com/pattonsgirl/CEG3120/raw/refs/heads/main/Projects/Project3/simple-site.tar.gz && \
+            tar -xzvf /tmp/simple-site.tar.gz -C /var/www/html && \
+            systemctl enable apache2 && \
+            systemctl start apache2 && \
+            reboot
+
+
 # TODO: create 2 more instances attached to the private subnet
